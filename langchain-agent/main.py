@@ -23,7 +23,7 @@ def main():
 
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key or api_key.startswith("sk-your"):
-        print("❌ 请先在 .env 文件中设置 OPENAI_API_KEY")
+        print("❌ 请先在  .env 文件中设置 OPENAI_API_KEY")
         return
 
     # 创建 LLM（对比 mini-agent 的 OpenAI 客户端）
