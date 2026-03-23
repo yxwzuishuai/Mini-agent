@@ -3,8 +3,11 @@
 """
 
 import math
+import os
 from datetime import datetime
 from langchain_core.tools import tool
+from langchain_openai import OpenAIEmbeddings
+from langchain_community.vectorstores import Chroma
 
 
 @tool
@@ -30,20 +33,62 @@ def calculate(expression: str) -> str:
         return f"计算错误: {e}"
 
 
+_retriever_cache = None
+
+
+def _get_retriever():
+    """
+    初始化并返回 ChromaDB Retriever（带模块级缓存）。
+
+    Returns:
+        Chroma retriever 实例
+    Raises:
+        FileNotFoundError: ChromaDB 路径不存在
+        Exception: Embedding 或 ChromaDB 初始化失败
+    """
+    global _retriever_cache
+    if _retriever_cache is not None:
+        return _retriever_cache
+
+    chroma_path = os.environ.get("CHROMA_PATH", "../rag-agent/chroma_db")
+    embedding_model = os.environ.get("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
+
+    if not os.path.exists(chroma_path):
+        raise FileNotFoundError(f"ChromaDB 路径不存在: {chroma_path}")
+
+    embedding_kwargs = {
+        "model": embedding_model,
+        "api_key": os.environ.get("OPENAI_API_KEY"),
+    }
+    base_url = os.environ.get("OPENAI_BASE_URL")
+    if base_url:
+        embedding_kwargs["base_url"] = base_url
+
+    embeddings = OpenAIEmbeddings(**embedding_kwargs)
+    vectorstore = Chroma(persist_directory=chroma_path, embedding_function=embeddings)
+    _retriever_cache = vectorstore.as_retriever(search_kwargs={"k": 3})
+    return _retriever_cache
+
+
 @tool
 def search_knowledge(query: str) -> str:
     """
-    从知识库中搜索信息。
-    参数 query: 搜索关键词
+    从本地文档知识库中检索信息，适用于需要查找技术文档、教程、指南等知识性问题。
+    参数 query: 用户的查询问题
     """
-    kb = {
-        "python": "Python 是一种高级编程语言，以简洁易读著称。",
-        "agent": "AI Agent 是能够感知环境、做出决策并采取行动的 AI 系统。",
-        "langchain": "LangChain 是一个用于开发 LLM 应用的框架。",
-        "fastapi": "FastAPI 是一个高性能的 Python Web 框架，基于 Starlette 和 Pydantic。",
-    }
-    results = [v for k, v in kb.items() if k in query.lower()]
-    return "\n".join(results) if results else f"未找到与 '{query}' 相关的信息"
+    try:
+        retriever = _get_retriever()
+        docs = retriever.invoke(query)
+        if not docs:
+            return f"未找到与 '{query}' 相关的内容"
+        return "\n\n---\n\n".join([doc.page_content for doc in docs])
+    except FileNotFoundError:
+        return "知识库未初始化，请先运行文档入库脚本（python ingest.py）"
+    except Exception as e:
+        if "openai" in str(type(e).__module__).lower() or "api" in str(e).lower():
+            return "知识库检索服务暂时不可用，请稍后再试"
+        return f"知识库检索出错: {e}"
+
 
 
 ALL_TOOLS = [get_current_time, calculate, search_knowledge]
