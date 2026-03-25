@@ -1,0 +1,9 @@
+[project]
+name = "mini-agent"
+version = "1.0.0"
+description = "Mini Agent - 手写 Agent Loop Demo"
+requires-python = ">=3.10"
+dependencies = [
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
+]

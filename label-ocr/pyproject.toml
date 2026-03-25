@@ -1,0 +1,14 @@
+[project]
+name = "label-ocr"
+version = "1.0.0"
+description = "运单号识别 API - 基于通义千问 Qwen VL"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
+    "python-multipart>=0.0.9",
+    "httpx>=0.25.0",
+    "PyMuPDF>=1.24.0",
+]

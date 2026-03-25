@@ -15,6 +15,7 @@ import os
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent
 from tools import ALL_TOOLS
 
 
@@ -37,7 +38,7 @@ def main():
 
     # 创建 Agent（对比 mini-agent 的 MiniAgent 类 + Agent Loop）
     # 这一行等价于你手写的整个 agent.py
-    agent = create_react_agent(llm, ALL_TOOLS)
+    agent = create_agent(llm, ALL_TOOLS)
 
     print("=" * 50)
     print("🤖 LangChain Agent 已启动")
